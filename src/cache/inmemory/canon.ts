@@ -19,12 +19,12 @@ import { objToStr } from "./helpers";
 // which usually means the objects are structurally equivalent (deeply
 // equal), but don't necessarily use the same memory.
 //
-// Like a literary or musical canon, this Canon class is a collection of
-// unique canonical objects, with the property that canon.admit(value1)
-// === canon.admit(value2) if value1 and value2 are deeply equal to each
-// other. In terms of the definition above, the canon.admit method is the
-// "function or procedure which projects every" object "onto that one
-// element, the canonical form."
+// Like a literary or musical canon, this Canon class represents a
+// collection of unique canonical items (JavaScript objects), with the
+// important property that canon.admit(a) === canon.admit(b) if a and b
+// are deeply equal to each other. In terms of the definition above, the
+// canon.admit method is the "function or procedure which projects every"
+// object "onto that one element, the canonical form."
 //
 // In the worst case, the canonicalization process may involve looking at
 // every property in the provided object tree, so it takes the same order
@@ -34,29 +34,35 @@ import { objToStr } from "./helpers";
 //
 // Since consumers of canonical objects can check for deep equality in
 // constant time, canonicalizing cache results can massively improve the
-// performance of code that skips re-rendering unchanged results, such as
-// "pure" UI components in a framework like React.
+// performance of application code that skips re-rendering unchanged
+// results, such as "pure" UI components in a framework like React.
 //
 // Of course, since canonical objects may be shared widely between
 // unrelated consumers, it's important to think of them as immutable, even
 // though they are not actually frozen with Object.freeze in production,
 // due to the extra performance overhead that comes with frozen objects.
 //
-// No detection of cycles is needed by the StoreReader class right now, so
-// we don't bother keeping track of objects we've already seen during the
-// recursion of the admit method.
+// Custom scalar objects whose internal class name is neither Array nor
+// Object can be included safely in the admitted tree, but they will not
+// be replaced with a canonical version (to put it another way, they are
+// assumed to be canonical already).
 //
-// Objects whose internal class name is neither Array nor Object can be
-// included in the value tree, but they will not be replaced with a
-// canonical version (to put it another way, they are assumed to be
-// canonical already). We can easily add additional cases to the switch
+// If we ignore custom objects, no detection of cycles or repeated object
+// references is currently required by the StoreReader class, since
+// GraphQL result objects are JSON-serializable trees (and thus contain
+// neither cycles nor repeated subtrees), so we can avoid the complexity
+// of keeping track of objects we've already seen during the recursion of
+// the admit method.
+//
+// In the future, we may consider adding additional cases to the switch
 // statement to handle other common object types, such as "[object Date]"
 // objects, as needed.
 export class Canon {
-  // All known objects this Canon has admitted.
+  // Set of all canonical objects this Canon has admitted, allowing
+  // canon.admit to return previously-canonicalized objects immediately.
   private known = new (canUseWeakMap ? WeakSet : Set)<object>();
 
-  // Efficient storage/lookup structure for admitting objects.
+  // Efficient storage/lookup structure for canonical objects.
   private pool = new KeyTrie<{
     array?: any[];
     object?: Record<string, any>;
