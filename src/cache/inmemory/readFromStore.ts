@@ -21,7 +21,6 @@ import {
   getFragmentDefinitions,
   getMainDefinition,
   getQueryDefinition,
-  maybeDeepFreeze,
   mergeDeepArray,
   getFragmentFromSelection,
 } from '../../utilities';
@@ -278,21 +277,7 @@ export class StoreReader {
             context,
           }));
 
-        } else if (!selection.selectionSet) {
-          // If the field does not have a selection set, then we handle it
-          // as a scalar value. However, that value should not contain any
-          // Reference objects, and should be frozen in development, if it
-          // happens to be an object that is mutable.
-          if (process.env.NODE_ENV !== 'production') {
-            assertSelectionSetForIdValue(
-              context.store,
-              selection,
-              fieldValue,
-            );
-            maybeDeepFreeze(fieldValue);
-          }
-
-        } else if (fieldValue != null) {
+        } else if (selection.selectionSet && fieldValue != null) {
           // In this case, because we know the field has a selection set,
           // it must be trying to query a GraphQLObjectType, which is why
           // fieldValue must be != null.
